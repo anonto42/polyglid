@@ -25,6 +25,18 @@ Run from the repository root unless noted.
 # Desktop application
 cargo run -p polyglid-desktop
 
+# Desktop application with live reload (Dioxus CLI)
+dx serve --desktop --package polyglid-desktop --hot-patch
+
+# Same, via the Makefile wrappers over scripts/dev/serve-desktop.sh
+make serve
+make serve-no-patch
+
+# Knowledge graph of the codebase (graphify-rs, wrappers in scripts/dev/)
+make graph
+make graph-query Q="how does permanent project deletion validate paths?"
+make graph-serve
+
 # Whole workspace
 cargo check --workspace
 cargo test --workspace
@@ -44,6 +56,26 @@ The exact verification used by CI is available as:
 ```bash
 scripts/ci/verify-rust.sh
 ```
+
+### Live-Reload Notes
+
+- RSX markup edits (elements, text, string attributes) apply instantly.
+- Rust logic changes need hot-patching (`--hot-patch`) or a rebuild; press `r`
+  in the dx TUI to force a full rebuild.
+- Hot-patching only tracks the tip crate (`apps/desktop`); changes in
+  `crates/*` recompile normally.
+- Styles in `apps/desktop/assets/*.css` are embedded via `include_str!`, so CSS
+  edits recompile instead of hot-swapping.
+
+### Knowledge Graph
+
+`graphify-rs` (install once with `cargo install graphify-rs`) builds a
+queryable knowledge graph of the codebase — useful for architecture questions
+and for AI agents. Wrappers live in `scripts/dev/` (see
+`scripts/dev/README.md`). `make graph` performs the free AST-only pass; LLM
+semantic extraction additionally requires `ANTHROPIC_API_KEY` or an `[llm]`
+section in `graphify-rs.toml`. Graph output lands in
+`~/.graphify-rs/<project>-<hash>/`.
 
 ## Quality Gates
 

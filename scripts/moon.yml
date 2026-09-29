@@ -18,3 +18,25 @@ tasks:
     options:
       cache: false
       runInCI: "affected"
+
+  graphifyBuild:
+    command: "$workspaceRoot/scripts/dev/graphify-build.sh"
+    description: "Build the PolyGlid codebase knowledge graph with graphify-rs"
+    options:
+      cache: false
+      runInCI: "skip"
+
+  graphifyQuery:
+    command: "$workspaceRoot/scripts/dev/graphify-query.sh"
+    description: "Query the PolyGlid knowledge graph"
+    options:
+      cache: false
+      runInCI: "skip"
+
+  graphifyServe:
+    command: "$workspaceRoot/scripts/dev/graphify-serve.sh"
+    description: "Serve the PolyGlid knowledge graph over MCP for agents"
+    options:
+      cache: false
+      runInCI: "skip"
+      persistent: true

@@ -2,6 +2,9 @@
 
 Repository automation lives here instead of being embedded in workflow YAML.
 
+- `dev/` contains development wrappers (desktop live-reload serving, plain
+  runs, and `graphify-rs` knowledge-graph tasks) used by the root `Makefile`
+  and Moon tasks. See `dev/README.md`.
 - `ci/` contains validation (including release-title tests), pinned tool setup,
   platform dependency setup, and workspace verification.
 - `release/` contains release lockfile synchronization, platform packaging,

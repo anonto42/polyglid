@@ -1,0 +1,22 @@
+language: "rust"
+layer: "application"
+stack: "frontend"
+
+tasks:
+  serve:
+    command: "$workspaceRoot/scripts/dev/serve-desktop.sh"
+    description: "Run the desktop app with Dioxus live-reload (dx serve)"
+    options:
+      cache: false
+      mutex: "cargo-workspace"
+      persistent: true
+      runInCI: "skip"
+
+  run:
+    command: "$workspaceRoot/scripts/dev/run-desktop.sh"
+    description: "Run the desktop app without live-reload tooling"
+    options:
+      cache: false
+      mutex: "cargo-workspace"
+      persistent: true
+      runInCI: "skip"
