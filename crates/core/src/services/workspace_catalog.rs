@@ -90,11 +90,16 @@ impl WorkspaceCatalogService {
         workspaces.set_discovery(workspace_id, "loading", None, now)?;
         match discover_direct_children(workspace_id, Path::new(&workspace.root_path), now) {
             Ok(projects) => {
-                self.store
-                    .project_catalog()
-                    .sync(workspace_id, &projects, now)?;
+                // Sync and the follow-up read share one lock acquisition so no
+                // other operation can interleave between them.
+                let projects = self.store.project_catalog().sync_with(
+                    workspace_id,
+                    &projects,
+                    now,
+                    |conn| crate::store::ProjectCatalogStore::list_from_conn(conn, workspace_id),
+                )?;
                 workspaces.set_discovery(workspace_id, "ready", None, now)?;
-                self.store.project_catalog().list(workspace_id)
+                Ok(projects)
             }
             Err(error) => {
                 workspaces.set_discovery(workspace_id, "error", Some(&error), now)?;

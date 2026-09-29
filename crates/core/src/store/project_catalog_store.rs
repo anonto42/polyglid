@@ -28,26 +28,27 @@ impl ProjectCatalogStore {
         let tx = conn
             .transaction()
             .map_err(|err| format!("failed to sync projects: {err}"))?;
-        tx.execute(
-            "UPDATE projects SET archived=1,updated_at=?2 WHERE workspace_id=?1 AND excluded=0",
-            params![workspace_id, now],
-        )
-        .map_err(|err| format!("failed to mark stale projects: {err}"))?;
-        for project in projects {
-            tx.execute(
-                "INSERT INTO projects (id,workspace_id,name,path,kind,archived,created_at,updated_at)
-                 VALUES (?1,?2,?3,?4,?5,0,?6,?7)
-                 ON CONFLICT(workspace_id,path) DO UPDATE SET
-                    name=excluded.name,
-                    kind=excluded.kind,
-                    archived=CASE WHEN projects.excluded=1 THEN 1 ELSE 0 END,
-                    updated_at=excluded.updated_at",
-                params![project.id, project.workspace_id, project.name, project.path,
-                    project.kind, project.created_at, project.updated_at],
-            ).map_err(|err| format!("failed to save discovered project: {err}"))?;
-        }
+        sync_in_transaction(&tx, workspace_id, projects, now)?;
         tx.commit()
             .map_err(|err| format!("failed to commit project sync: {err}"))
+    }
+
+    /// List a workspace's active, non-excluded projects using an existing
+    /// connection. Used with `sync_with` to read back the synced catalog
+    /// without reacquiring the store lock.
+    pub fn list_from_conn(conn: &Connection, workspace_id: &str) -> Result<Vec<DbProject>, String> {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,workspace_id,name,path,kind,archived,created_at,updated_at
+             FROM projects WHERE workspace_id=?1 AND archived=0 AND excluded=0
+             ORDER BY name COLLATE NOCASE",
+            )
+            .map_err(|err| format!("failed to prepare project query: {err}"))?;
+        let rows = stmt
+            .query_map([workspace_id], map_project)
+            .map_err(|err| format!("failed to query projects: {err}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|err| format!("failed to read project row: {err}"))
     }
 
     pub fn list(&self, workspace_id: &str) -> Result<Vec<DbProject>, String> {
@@ -96,6 +97,66 @@ impl ProjectCatalogStore {
         .map(|_| ())
         .map_err(|err| format!("failed to archive project: {err}"))
     }
+
+    /// Replace the discovered project set for a workspace inside one held lock
+    /// and transaction. `replace` receives a locked connection because
+    /// discovery follows the sync with a read of the same data; reusing the
+    /// lock avoids interleaving with other catalog operations between the two
+    /// steps.
+    pub fn sync_with<F, T>(
+        &self,
+        workspace_id: &str,
+        projects: &[DbProject],
+        now: i64,
+        replace: F,
+    ) -> Result<T, String>
+    where
+        F: FnOnce(&Connection) -> Result<T, String>,
+    {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn
+            .transaction()
+            .map_err(|err| format!("failed to sync projects: {err}"))?;
+        sync_in_transaction(&tx, workspace_id, projects, now)?;
+        tx.commit()
+            .map_err(|err| format!("failed to commit project sync: {err}"))?;
+        replace(&conn)
+    }
+}
+
+fn sync_in_transaction(
+    tx: &rusqlite::Transaction<'_>,
+    workspace_id: &str,
+    projects: &[DbProject],
+    now: i64,
+) -> Result<(), String> {
+    tx.execute(
+        "UPDATE projects SET archived=1,updated_at=?2 WHERE workspace_id=?1 AND excluded=0",
+        params![workspace_id, now],
+    )
+    .map_err(|err| format!("failed to mark stale projects: {err}"))?;
+    for project in projects {
+        tx.execute(
+            "INSERT INTO projects (id,workspace_id,name,path,kind,archived,created_at,updated_at)
+             VALUES (?1,?2,?3,?4,?5,0,?6,?7)
+             ON CONFLICT(workspace_id,path) DO UPDATE SET
+                name=excluded.name,
+                kind=excluded.kind,
+                archived=CASE WHEN projects.excluded=1 THEN 1 ELSE 0 END,
+                updated_at=excluded.updated_at",
+            params![
+                project.id,
+                project.workspace_id,
+                project.name,
+                project.path,
+                project.kind,
+                project.created_at,
+                project.updated_at
+            ],
+        )
+        .map_err(|err| format!("failed to save discovered project: {err}"))?;
+    }
+    Ok(())
 }
 
 fn map_project(row: &rusqlite::Row<'_>) -> rusqlite::Result<DbProject> {

@@ -24,6 +24,16 @@ impl WorkspaceStore {
         let mut conn = Connection::open(path)
             .map_err(|err| format!("failed to open database file '{}': {err}", path.display()))?;
 
+        // Keep UI-driven filesystem work responsive under the shared Mutex:
+        // WAL lets catalog reads proceed while a write transaction commits, and
+        // busy_timeout turns lock contention into a short wait instead of an
+        // immediate error.
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA busy_timeout = 5000;",
+        )
+        .map_err(|err| format!("failed to configure database pragmas: {err}"))?;
+
         let migration_report = MigrationManager::run_with_report(&mut conn)?;
 
         let profile_default = if cfg!(test) {
