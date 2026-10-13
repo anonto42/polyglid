@@ -15,10 +15,11 @@ Use this loader before implementation, diagnosis, or review.
 
 ## Hard Boundaries
 
-- The active product UI is Dioxus. Do not add GPUI or a second shipped UI stack
-  without an explicit architecture decision from the user.
-- The current UI phase is Projects. Do not restore scanner, execution, report,
-  plugin, marketplace, or settings screens until their phase is requested.
+- The active product UI is the GPUI editor workbench. Do not restore the removed
+  Dioxus desktop or add a second shipped desktop UI stack.
+- Product areas must be connected to real client controllers; do not present
+  scanner, execution, report, plugin, marketplace, or settings controls as
+  working when only a visual shell exists.
 - `apps/` contains runnable products; reusable logic belongs in `crates/`.
   Crates must not depend on an app.
 - Preserve explicit confirmation and direct-child validation for permanent

@@ -1,8 +1,8 @@
 use crate::client::{
-    Approval, BootstrapSnapshot, ClientGateway, ClientResult, Execution, ExecutionPreferences,
-    ExecutionSubscription, JobId, PermissionDecisionRequest, Plugin, PluginInspection, Project,
-    Report, ReportFormat, SavedTarget, ShellPreferences, StartExecutionRequest, Workspace,
-    WorkspaceEntry,
+    Approval, BootstrapSnapshot, ClientGateway, ClientResult, Document, Execution,
+    ExecutionPreferences, ExecutionSubscription, JobId, PermissionDecisionRequest, Plugin,
+    PluginInspection, Project, Report, ReportFormat, SavedTarget, ShellPreferences,
+    StartExecutionRequest, Workspace, WorkspaceEntry,
 };
 
 pub type DesktopControllers = FeatureControllers<crate::client::LocalClient>;
@@ -46,6 +46,19 @@ impl<G: ClientGateway> DocumentsController<G> {
         self.0
             .list_workspace_entries(workspace_id, relative_directory)
     }
+
+    pub fn read(&self, workspace_id: &str, relative_path: &str) -> ClientResult<Document> {
+        self.0.read_document(workspace_id, relative_path)
+    }
+
+    pub fn write(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        contents: &str,
+    ) -> ClientResult<()> {
+        self.0.write_document(workspace_id, relative_path, contents)
+    }
 }
 
 #[derive(Clone)]
@@ -74,6 +87,10 @@ impl<G: ClientGateway> ApplicationController<G> {
 
     pub fn activate_workspace(&self, workspace_id: &str) -> ClientResult<()> {
         self.0.activate_workspace(workspace_id)
+    }
+
+    pub fn register_workspace(&self, name: &str, root_path: &str) -> ClientResult<Workspace> {
+        self.0.register_workspace(name, root_path)
     }
 }
 
@@ -218,6 +235,33 @@ mod tests {
             .documents
             .list_directory(&snapshot.active_workspace.id, "..")
             .is_err());
+
+        std::fs::write(
+            projects.join("controller-project").join("README.md"),
+            "# controller\n",
+        )
+        .expect("seed controller document");
+        let document = controllers
+            .documents
+            .read(
+                &snapshot.active_workspace.id,
+                "controller-project/README.md",
+            )
+            .expect("read controller document");
+        assert_eq!(document.contents, "# controller\n");
+        controllers
+            .documents
+            .write(
+                &snapshot.active_workspace.id,
+                "controller-project/README.md",
+                "# updated\n",
+            )
+            .expect("write controller document");
+        assert_eq!(
+            std::fs::read_to_string(projects.join("controller-project").join("README.md"))
+                .expect("reread controller document"),
+            "# updated\n"
+        );
 
         std::fs::remove_dir_all(root).expect("remove test workspace");
     }

@@ -3,20 +3,19 @@
 ## Current Product Phase
 
 PolyGlid is a local-first, cross-platform Rust desktop application. The active
-phase exposes only project and workspace management:
+desktop is an editor-first GPUI workbench with:
 
-- discover project folders in a workspace;
-- create, select, rename, and remove projects;
-- permanently delete a project folder after explicit confirmation;
-- switch between registered local workspaces;
-- persist shell preferences.
+- traversal-safe workspace browsing;
+- document tabs, editable buffers, dirty state, and save support;
+- project, target, execution, report, and plugin snapshot views;
+- command and shell navigation foundations.
 
-Future product UI areas are intentionally absent and must be added one phase at
-a time.
+Additional product mutations must be connected through `DesktopControllers`
+one complete workflow at a time.
 
 ## Workspace Shape
 
-- `apps/desktop` — Dioxus 0.7 native desktop application.
+- `apps/desktop` — GPUI 0.2 native editor workbench.
 - `apps/website` — Dioxus 0.7 Web product website and Pages bundle.
 - `crates/client` — UI-independent gateway, models, and feature controllers.
 - `crates/core` — domain services, SQLite stores, security, and execution.

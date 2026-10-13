@@ -34,17 +34,21 @@
           moon = assert pkgs.moon.version == "2.4.6"; pkgs.moon;
           dioxusCli = assert pkgs.dioxus-cli.version == "0.7.9"; pkgs.dioxus-cli;
           linuxLibraries = with pkgs; [
-            gtk3
-            libayatana-appindicator
-            librsvg
+            fontconfig
+            freetype
+            libxcb
+            libxkbcommon
+            mesa
+            vulkan-loader
+            wayland
             xdotool
-            webkitgtk_4_1
           ];
         in
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
               cacert
+              cargo-watch
               curl
               dioxusCli
               git
@@ -58,6 +62,9 @@
             buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux linuxLibraries;
 
             LD_LIBRARY_PATH = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux (
+              pkgs.lib.makeLibraryPath linuxLibraries
+            );
+            LIBRARY_PATH = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux (
               pkgs.lib.makeLibraryPath linuxLibraries
             );
           };

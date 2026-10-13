@@ -3,22 +3,18 @@ name = "polyglid-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Local-first workspace project manager and execution control plane"
-
-[features]
-default = ["dioxus-ui"]
-dioxus-ui = ["dep:dioxus"]
+description = "Native editor-first security workspace"
 
 [dependencies]
-dioxus = { version = "0.7", features = ["desktop"], optional = true }
+gpui = "0.2.2"
 polyglid-client = { path = "../../crates/client" }
-tokio = { version = "1", features = ["rt"] }
+rfd = "0.15"
+portable-pty = "0.9"
 
 [[bin]]
 name = "polyglid-desktop"
 path = "src/main.rs"
 test = false
-required-features = ["dioxus-ui"]
 
 [lints.rust]
 unsafe_code = "forbid"

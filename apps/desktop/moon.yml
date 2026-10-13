@@ -5,7 +5,7 @@ stack: "frontend"
 tasks:
   serve:
     command: "$workspaceRoot/scripts/dev/serve-desktop.sh"
-    description: "Run the desktop app with Dioxus live-reload (dx serve)"
+    description: "Run the native GPUI desktop app"
     options:
       cache: false
       mutex: "cargo-workspace"

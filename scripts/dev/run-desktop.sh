@@ -7,4 +7,7 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repository_root"
 
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/polyglid-workbench-target}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+
 exec cargo run -p polyglid-desktop "$@"

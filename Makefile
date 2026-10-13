@@ -5,10 +5,10 @@
 #
 #   nix develop
 #
-# Desktop development with live reload:
-#   make serve            # dx serve with Rust hot-patching (Subsecond)
-#   make serve-no-patch   # dx serve without Rust hot-patching
-#   make run              # plain cargo run, no live reload
+# Desktop development:
+#   make serve            # native GPUI workbench
+#   make dev              # watch sources and restart on changes
+#   make run              # native GPUI workbench
 #
 # Knowledge graph (graphify-rs):
 #   make graph            # build the codebase knowledge graph
@@ -26,14 +26,14 @@
 #   make help             # list targets
 #   make clean-data       # remove the isolated dev data folder (target/dev-data)
 
-.PHONY: help serve serve-no-patch run graph graph-llm graph-query graph-serve \
+.PHONY: help serve dev run graph graph-llm graph-query graph-serve \
         verify check test fmt clean-data
 
 help:
 	@echo "PolyGlid development targets:"
-	@echo "  make serve            desktop app with Dioxus live reload (hot-patch)"
-	@echo "  make serve-no-patch   desktop app with live reload, no Rust hot-patching"
-	@echo "  make run              desktop app via plain cargo run"
+	@echo "  make serve            native GPUI editor workbench"
+	@echo "  make dev              watch sources and restart on changes"
+	@echo "  make run              native GPUI editor workbench"
 	@echo "  make graph            build the codebase knowledge graph (graphify-rs)"
 	@echo "  make graph-llm        build the graph with LLM extraction enabled"
 	@echo '  make graph-query Q="question"   query the knowledge graph'
@@ -45,10 +45,10 @@ help:
 	@echo "  make clean-data       remove isolated dev data (target/dev-data)"
 
 serve:
-	@scripts/dev/serve-desktop.sh --hot-patch
+	@scripts/dev/serve-desktop.sh
 
-serve-no-patch:
-	@scripts/dev/serve-desktop.sh --no-hot-patch
+dev:
+	@scripts/dev/dev-desktop.sh
 
 run:
 	@scripts/dev/run-desktop.sh

@@ -9,7 +9,7 @@
 ```text
 polyglid/
 ├── apps/
-│   ├── desktop/          # Dioxus desktop shell (UI + Tauri-style commands)
+│   ├── desktop/          # GPUI native editor workbench
 │   └── website/          # Dioxus Web site (GitHub Pages)
 ├── crates/
 │   ├── client/           # UI-independent controllers and the local adapter
@@ -34,7 +34,7 @@ polyglid/
 | `polyglid-config` | Config schema, defaults, validation, migrations, and persistence. |
 | `polyglid-events` | Typed events emitted between the host, UI, runtime, and plugins. |
 | `polyglid-client` | UI-independent controllers and the local gateway that the desktop shell calls. |
-| `polyglid-desktop` | Dioxus desktop window, navigation, state, and command handlers. |
+| `polyglid-desktop` | GPUI desktop window, editor buffers, navigation, state, and commands. |
 | `polyglid-website` | Static marketing site rendered to GitHub Pages. |
 
 The `contracts/polyglid.wit` file is the source of truth for the plugin ABI: the

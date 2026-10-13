@@ -8,18 +8,13 @@ anywhere. Run them inside the pinned environment: `nix develop`.
 
 | Script | Purpose |
 | --- | --- |
-| `serve-desktop.sh` | `dx serve` with Dioxus live reload; Rust hot-patching (Subsecond) on by default, `--no-hot-patch` to disable, `--open` to open a window, extra args pass through to `dx serve` |
-| `run-desktop.sh` | plain `cargo run -p polyglid-desktop` without live-reload tooling |
+| `serve-desktop.sh` | run the native GPUI editor workbench; extra arguments pass through to `cargo run` |
+| `dev-desktop.sh` | watch desktop, crate, and contract sources and restart the workbench after changes |
+| `run-desktop.sh` | run the same `polyglid-desktop` package directly |
 
-### Live-Reload Behavior (Dioxus 0.7)
-
-- RSX markup edits (elements, text, string attributes) apply instantly.
-- Rust logic changes need hot-patching (`--hot-patch`, default here) or a
-  rebuild; press `r` in the dx TUI to force a full rebuild.
-- Hot-patching only tracks the tip crate (`apps/desktop`). Changes in
-  `crates/*` recompile normally.
-- Styles in `apps/desktop/assets/*.css` are embedded via `include_str!`, so CSS
-  edits recompile instead of hot-swapping.
+GPUI is a native Rust build and does not use the Dioxus hot-reload server. Use
+`make dev` for automatic rebuilds and restarts, or restart `make serve`
+manually after source changes.
 
 ## Knowledge Graph (graphify-rs)
 

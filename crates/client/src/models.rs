@@ -67,6 +67,14 @@ pub struct WorkspaceEntry {
     pub is_symlink: bool,
 }
 
+/// A text file opened for editing, addressed by its workspace-relative path.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Document {
+    pub relative_path: String,
+    pub contents: String,
+    pub byte_size: u64,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Plugin {
     pub id: String,

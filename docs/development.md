@@ -13,8 +13,8 @@ nix develop
 ```
 
 The shell provides the pinned Rust toolchain (1.96.0, edition 2021), the
-`wasm32-unknown-unknown` target, Moon 2.4.6, Dioxus CLI 0.7.9, Go, Git, and the
-native Linux libraries required by the desktop build. It supports Linux
+`wasm32-unknown-unknown` target, Moon 2.4.6, Dioxus CLI 0.7.9 for the website,
+Go, Git, and the GPUI Linux libraries required by the desktop build. It supports Linux
 x86-64/ARM64 and macOS Apple Silicon.
 
 ## Common Commands
@@ -25,12 +25,8 @@ Run from the repository root unless noted.
 # Desktop application
 cargo run -p polyglid-desktop
 
-# Desktop application with live reload (Dioxus CLI)
-dx serve --desktop --package polyglid-desktop --hot-patch
-
-# Same, via the Makefile wrappers over scripts/dev/serve-desktop.sh
+# Same, via the Makefile wrapper over scripts/dev/serve-desktop.sh
 make serve
-make serve-no-patch
 
 # Knowledge graph of the codebase (graphify-rs, wrappers in scripts/dev/)
 make graph
@@ -57,15 +53,14 @@ The exact verification used by CI is available as:
 scripts/ci/verify-rust.sh
 ```
 
-### Live-Reload Notes
+### Desktop Development Notes
 
-- RSX markup edits (elements, text, string attributes) apply instantly.
-- Rust logic changes need hot-patching (`--hot-patch`) or a rebuild; press `r`
-  in the dx TUI to force a full rebuild.
-- Hot-patching only tracks the tip crate (`apps/desktop`); changes in
-  `crates/*` recompile normally.
-- Styles in `apps/desktop/assets/*.css` are embedded via `include_str!`, so CSS
-  edits recompile instead of hot-swapping.
+- GPUI is compiled as a native Rust application; restart `make serve` after
+  source changes.
+- `Ctrl+P` opens commands, `Ctrl+B` toggles the explorer, `Ctrl+W` closes a
+  clean document, and `Ctrl+S` saves the active document.
+- Use `POLYGLID_DATA_DIR` and `POLYGLID_WORKSPACE_ROOT` to isolate development
+  data and select the workspace displayed by the editor.
 
 ### Knowledge Graph
 

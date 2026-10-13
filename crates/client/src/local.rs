@@ -47,11 +47,11 @@ pub struct SetupReport {
 }
 use super::{
     Approval, ApprovalDecision, ApprovalDuration, BootstrapSnapshot, CapabilityKind,
-    CapabilityRequest, CapabilityScope, ClientError, ClientGateway, ClientResult, Execution,
-    ExecutionEvent, ExecutionMetrics, ExecutionPreferences, ExecutionReport, ExecutionState,
-    ExecutionSubscription, Issue, JobId, PermissionDecisionRequest, Plugin, PluginInspection,
-    PluginSource, PluginStatus, Project, Report, ReportFormat, SavedTarget, Severity,
-    ShellPreferences, StartExecutionRequest, Workspace, WorkspaceEntry,
+    CapabilityRequest, CapabilityScope, ClientError, ClientGateway, ClientResult, Document,
+    Execution, ExecutionEvent, ExecutionMetrics, ExecutionPreferences, ExecutionReport,
+    ExecutionState, ExecutionSubscription, Issue, JobId, PermissionDecisionRequest, Plugin,
+    PluginInspection, PluginSource, PluginStatus, Project, Report, ReportFormat, SavedTarget,
+    Severity, ShellPreferences, StartExecutionRequest, Workspace, WorkspaceEntry,
 };
 
 #[derive(Clone)]
@@ -268,6 +268,58 @@ impl LocalClient {
     }
 }
 
+/// Upper bound for text files read from or written by the editor.
+const MAX_DOCUMENT_BYTES: u64 = 8 * 1024 * 1024;
+
+impl LocalClient {
+    /// Resolve a workspace-relative path, rejecting anything that would escape
+    /// the workspace root. Returns the canonical root and the resolved path.
+    fn resolve_workspace_path(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        field: &'static str,
+    ) -> ClientResult<(PathBuf, PathBuf)> {
+        use std::path::Component;
+
+        let workspace = self
+            .list_workspaces()?
+            .into_iter()
+            .find(|workspace| workspace.id == workspace_id)
+            .ok_or_else(|| ClientError::NotFound {
+                resource: "workspace",
+                id: workspace_id.to_owned(),
+            })?;
+
+        let relative = Path::new(relative_path);
+        if relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_) | Component::CurDir))
+        {
+            return Err(ClientError::InvalidInput {
+                field,
+                message: "the path must stay inside the active workspace".to_owned(),
+            });
+        }
+
+        let root = Path::new(&workspace.root_path)
+            .canonicalize()
+            .map_err(|error| ClientError::operation("resolve workspace root", error.to_string()))?;
+        let resolved = root
+            .join(relative)
+            .canonicalize()
+            .map_err(|error| ClientError::operation("resolve workspace path", error.to_string()))?;
+        if !resolved.starts_with(&root) {
+            return Err(ClientError::InvalidInput {
+                field,
+                message: "the path must resolve inside the active workspace".to_owned(),
+            });
+        }
+
+        Ok((root, resolved))
+    }
+}
+
 impl ClientGateway for LocalClient {
     fn bootstrap(&self) -> ClientResult<BootstrapSnapshot> {
         let (workspaces, active_workspace, projects) = self.load_active_catalog()?;
@@ -320,34 +372,9 @@ impl ClientGateway for LocalClient {
         workspace_id: &str,
         relative_directory: &str,
     ) -> ClientResult<Vec<WorkspaceEntry>> {
-        use std::path::Component;
-
-        let workspace = self
-            .list_workspaces()?
-            .into_iter()
-            .find(|workspace| workspace.id == workspace_id)
-            .ok_or_else(|| ClientError::NotFound {
-                resource: "workspace",
-                id: workspace_id.to_owned(),
-            })?;
-        let relative = Path::new(relative_directory);
-        if relative
-            .components()
-            .any(|component| !matches!(component, Component::Normal(_) | Component::CurDir))
-        {
-            return Err(ClientError::InvalidInput {
-                field: "relative directory",
-                message: "the path must stay inside the active workspace".to_owned(),
-            });
-        }
-
-        let root = Path::new(&workspace.root_path)
-            .canonicalize()
-            .map_err(|error| ClientError::operation("resolve workspace root", error.to_string()))?;
-        let directory = root.join(relative).canonicalize().map_err(|error| {
-            ClientError::operation("resolve workspace directory", error.to_string())
-        })?;
-        if !directory.starts_with(&root) || !directory.is_dir() {
+        let (root, directory) =
+            self.resolve_workspace_path(workspace_id, relative_directory, "relative directory")?;
+        if !directory.is_dir() {
             return Err(ClientError::InvalidInput {
                 field: "relative directory",
                 message: "the path must resolve to a directory inside the active workspace"
@@ -388,6 +415,61 @@ impl ClientGateway for LocalClient {
                 .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
         });
         Ok(entries)
+    }
+
+    fn read_document(&self, workspace_id: &str, relative_path: &str) -> ClientResult<Document> {
+        let (root, path) =
+            self.resolve_workspace_path(workspace_id, relative_path, "document path")?;
+        if !path.is_file() {
+            return Err(ClientError::InvalidInput {
+                field: "document path",
+                message: "the path must resolve to a file inside the active workspace".to_owned(),
+            });
+        }
+        let metadata = fs::metadata(&path)
+            .map_err(|error| ClientError::operation("inspect document", error.to_string()))?;
+        if metadata.len() > MAX_DOCUMENT_BYTES {
+            return Err(ClientError::InvalidInput {
+                field: "document path",
+                message: format!(
+                    "files larger than {MAX_DOCUMENT_BYTES} bytes are not opened in the editor"
+                ),
+            });
+        }
+        let contents = fs::read_to_string(&path)
+            .map_err(|error| ClientError::operation("read document", error.to_string()))?;
+        Ok(Document {
+            relative_path: workspace_relative_path(&root, &path, relative_path),
+            byte_size: metadata.len(),
+            contents,
+        })
+    }
+
+    fn write_document(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        contents: &str,
+    ) -> ClientResult<()> {
+        let (_, path) =
+            self.resolve_workspace_path(workspace_id, relative_path, "document path")?;
+        if !path.is_file() {
+            return Err(ClientError::InvalidInput {
+                field: "document path",
+                message: "the path must resolve to an existing file inside the active workspace"
+                    .to_owned(),
+            });
+        }
+        if contents.len() as u64 > MAX_DOCUMENT_BYTES {
+            return Err(ClientError::InvalidInput {
+                field: "document contents",
+                message: format!(
+                    "contents larger than {MAX_DOCUMENT_BYTES} bytes are not saved from the editor"
+                ),
+            });
+        }
+        fs::write(&path, contents)
+            .map_err(|error| ClientError::operation("write document", error.to_string()))
     }
 
     fn list_projects(&self, workspace_id: &str) -> ClientResult<Vec<Project>> {
@@ -1447,6 +1529,13 @@ fn enroll_official_publisher(
         .map_err(|error| ClientError::operation("enroll official publisher", error))
 }
 
+/// Describe a resolved path the same way the workspace tree does.
+fn workspace_relative_path(root: &Path, path: &Path, fallback: &str) -> String {
+    path.strip_prefix(root)
+        .map(|relative| relative.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| fallback.to_owned())
+}
+
 fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1595,5 +1684,81 @@ mod tests {
             .expect_err("pinned key mismatch must fail")
             .to_string()
             .contains("differs"));
+    }
+
+    #[test]
+    fn documents_round_trip_inside_the_workspace() {
+        let root = temporary_directory("document-roundtrip");
+        let data = root.join("data");
+        let workspace = root.join("projects");
+        let client = LocalClient::open(&data, &workspace).expect("open local client");
+        let workspace_id = client.bootstrap().expect("bootstrap").active_workspace.id;
+        fs::write(workspace.join("notes.txt"), "first\n").expect("seed document");
+
+        let document = client
+            .read_document(&workspace_id, "notes.txt")
+            .expect("read document");
+        assert_eq!(document.relative_path, "notes.txt");
+        assert_eq!(document.contents, "first\n");
+        assert_eq!(document.byte_size, 6);
+
+        client
+            .write_document(&workspace_id, "notes.txt", "second\n")
+            .expect("write document");
+        assert_eq!(
+            fs::read_to_string(workspace.join("notes.txt")).expect("reread document"),
+            "second\n"
+        );
+
+        fs::remove_dir_all(root).expect("clean temporary client");
+    }
+
+    #[test]
+    fn documents_reject_paths_that_escape_the_workspace() {
+        let root = temporary_directory("document-escape");
+        let data = root.join("data");
+        let workspace = root.join("projects");
+        let client = LocalClient::open(&data, &workspace).expect("open local client");
+        let workspace_id = client.bootstrap().expect("bootstrap").active_workspace.id;
+        fs::write(root.join("outside.txt"), "secret\n").expect("seed outside document");
+
+        for escape in ["../outside.txt", "/etc/hostname"] {
+            assert!(
+                client.read_document(&workspace_id, escape).is_err(),
+                "{escape} must not be readable"
+            );
+            assert!(
+                client
+                    .write_document(&workspace_id, escape, "overwritten")
+                    .is_err(),
+                "{escape} must not be writable"
+            );
+        }
+        assert_eq!(
+            fs::read_to_string(root.join("outside.txt")).expect("reread outside document"),
+            "secret\n"
+        );
+
+        fs::remove_dir_all(root).expect("clean temporary client");
+    }
+
+    #[test]
+    fn documents_reject_directories_missing_files_and_non_text() {
+        let root = temporary_directory("document-guard");
+        let data = root.join("data");
+        let workspace = root.join("projects");
+        let client = LocalClient::open(&data, &workspace).expect("open local client");
+        let workspace_id = client.bootstrap().expect("bootstrap").active_workspace.id;
+        fs::create_dir(workspace.join("folder")).expect("seed directory");
+        fs::write(workspace.join("blob.bin"), [0xff_u8, 0xfe]).expect("seed binary document");
+
+        assert!(client.read_document(&workspace_id, "folder").is_err());
+        assert!(client.read_document(&workspace_id, "missing.txt").is_err());
+        assert!(client
+            .write_document(&workspace_id, "missing.txt", "new")
+            .is_err());
+        assert!(client.read_document(&workspace_id, "blob.bin").is_err());
+
+        fs::remove_dir_all(root).expect("clean temporary client");
     }
 }

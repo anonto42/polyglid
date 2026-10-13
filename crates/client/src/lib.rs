@@ -14,7 +14,7 @@ pub use gateway::{ClientGateway, ExecutionSubscription};
 pub use local::{LocalClient, SetupReport, SetupStatus};
 pub use models::{
     Approval, ApprovalDecision, ApprovalDuration, BootstrapSnapshot, CapabilityKind,
-    CapabilityRequest, CapabilityScope, Execution, ExecutionEvent, ExecutionMetrics,
+    CapabilityRequest, CapabilityScope, Document, Execution, ExecutionEvent, ExecutionMetrics,
     ExecutionPreferences, ExecutionReport, ExecutionState, Issue, JobId, PermissionDecisionRequest,
     Plugin, PluginInspection, PluginSource, PluginStatus, Project, Report, ReportFormat,
     SavedTarget, Severity, ShellPreferences, StartExecutionRequest, Workspace, WorkspaceEntry,
@@ -25,12 +25,12 @@ pub use paths::{RuntimeInitialization, RuntimePaths};
 pub mod client {
     pub use super::{
         Approval, ApprovalDecision, ApprovalDuration, BootstrapSnapshot, CapabilityKind,
-        CapabilityRequest, CapabilityScope, ClientError, ClientGateway, ClientResult, Execution,
-        ExecutionEvent, ExecutionMetrics, ExecutionPreferences, ExecutionReport, ExecutionState,
-        ExecutionSubscription, Issue, JobId, LocalClient, PermissionDecisionRequest, Plugin,
-        PluginInspection, PluginSource, PluginStatus, Project, Report, ReportFormat, SavedTarget,
-        SetupReport, SetupStatus, Severity, ShellPreferences, StartExecutionRequest, Workspace,
-        WorkspaceEntry,
+        CapabilityRequest, CapabilityScope, ClientError, ClientGateway, ClientResult, Document,
+        Execution, ExecutionEvent, ExecutionMetrics, ExecutionPreferences, ExecutionReport,
+        ExecutionState, ExecutionSubscription, Issue, JobId, LocalClient,
+        PermissionDecisionRequest, Plugin, PluginInspection, PluginSource, PluginStatus, Project,
+        Report, ReportFormat, SavedTarget, SetupReport, SetupStatus, Severity, ShellPreferences,
+        StartExecutionRequest, Workspace, WorkspaceEntry,
     };
 }
 

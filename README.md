@@ -1,12 +1,13 @@
 # PolyGlid
 
 PolyGlid is a local-first, cross-platform desktop application for organizing
-and managing local project workspaces. It is built in Rust with Dioxus and is
+and managing local project workspaces. It is built in Rust with a native GPUI
+desktop and a Dioxus website, and is
 developed one working product phase at a time.
 
 [![GitHub repository](https://img.shields.io/badge/GitHub-anonto42%2Fpolyglid-181717?logo=github)](https://github.com/anonto42/polyglid)
 [![Rust](https://img.shields.io/badge/Rust-2021-DEA584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Dioxus](https://img.shields.io/badge/Dioxus-0.7-8A2BE2)](https://dioxuslabs.com/)
+[![GPUI](https://img.shields.io/badge/GPUI-0.2-4B7BEC)](https://crates.io/crates/gpui)
 [![License](https://img.shields.io/badge/License-MIT%20or%20Apache--2.0-blue)](LICENSE-APACHE)
 
 ## Current Functionality
@@ -24,7 +25,7 @@ their development phase begins.
 ## Repository Layout
 
 ```text
-apps/desktop/       Dioxus desktop application
+apps/desktop/       GPUI desktop editor workbench
 apps/website/       Dioxus website and GitHub Pages bundle
 crates/client/      UI-independent controllers and local adapter
 crates/config/      persisted configuration models
@@ -45,8 +46,8 @@ reproducible development environment:
 nix develop
 ```
 
-The shell provides Rust, Moon, the Dioxus CLI, Go, Git, and the native Linux
-libraries required by Dioxus Desktop. It supports Linux x86-64/ARM64 and macOS
+The shell provides Rust, Moon, the Dioxus CLI for the website, Go, Git, and the
+native Linux libraries required by GPUI. It supports Linux x86-64/ARM64 and macOS
 Apple Silicon. On macOS, Xcode Command Line Tools are also required.
 
 Run the desktop application:

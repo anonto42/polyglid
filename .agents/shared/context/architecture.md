@@ -3,7 +3,7 @@
 ## Request Flow
 
 ```text
-Dioxus views and AppState
+GPUI Workbench and WorkbenchState
         |
         v
 DesktopControllers
@@ -21,17 +21,16 @@ LocalClient
 ```
 
 The synchronous `ClientGateway` keeps UI code independent from domain
-implementation. Dioxus moves blocking filesystem and database calls to
-`tokio::task::spawn_blocking` and maps every result back into visible state.
+implementation. GPUI maps controller results into visible workbench state.
 
 ## Desktop State
 
-`AppState` contains:
+`WorkbenchState` contains:
 
 - shell visibility, width, and resize state;
-- workspace and project catalog data;
-- selected and active identifiers;
-- loading, operation, notice, and error state.
+- active product view and explorer directory;
+- open documents, active tab, cursors, and dirty state;
+- command palette and visible operation status.
 
 The root app bootstraps through `ApplicationController`. Project mutations go
 through `ProjectsController`, then trigger a catalog refresh.

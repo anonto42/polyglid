@@ -4,7 +4,7 @@ use polyglid_core::execution;
 use tokio::sync::broadcast;
 
 use super::{
-    Approval, BootstrapSnapshot, ClientError, ClientResult, Execution, ExecutionEvent,
+    Approval, BootstrapSnapshot, ClientError, ClientResult, Document, Execution, ExecutionEvent,
     ExecutionPreferences, JobId, PermissionDecisionRequest, Plugin, PluginInspection, Project,
     Report, ReportFormat, SavedTarget, ShellPreferences, StartExecutionRequest, Workspace,
     WorkspaceEntry,
@@ -27,6 +27,14 @@ pub trait ClientGateway: Clone + Send + Sync + 'static {
         workspace_id: &str,
         relative_directory: &str,
     ) -> ClientResult<Vec<WorkspaceEntry>>;
+
+    fn read_document(&self, workspace_id: &str, relative_path: &str) -> ClientResult<Document>;
+    fn write_document(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        contents: &str,
+    ) -> ClientResult<()>;
 
     fn list_projects(&self, workspace_id: &str) -> ClientResult<Vec<Project>>;
     fn create_project(&self, workspace_id: &str, name: &str) -> ClientResult<Project>;
